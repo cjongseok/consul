@@ -2,6 +2,10 @@
 
 readonly IMAGE="progrium/consul"
 readonly EXPECT="${EXPECT:-3}"
+readonly CONFIG_DIR="/config"
+readonly CONFIG_JSON="$CONFIG_DIR/consul.json"
+#readonly SCRIPT_DIR=$(dirname $(readlink -e $0))
+#readonly DATACENTER=$(getdc.sh)
 
 cmd-run() {
 	local ip_def="$1"; shift
@@ -98,13 +102,25 @@ processArgs() {
     echo $output
 }
 
+configureConsul() {
+    mv $CONFIG_JSON $CONFIG_DIR/.consul.json
+
+    # Add datacenter name to Consul configuration
+    jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_DIR/.consul.json > $CONFIG_JSON
+
+    cat $CONFIG_JSON
+}
+
 main() {
+    configureConsul
+
 	set -eo pipefail
 	case "$1" in
 	cmd:run)            shift; cmd-run $@;;
 	#*)                  exec /bin/consul agent -config-dir=/config $@;;
     #*)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";;
-    *)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";exec /bin/consul agent -config-dir=/config $(processArgs $@);;
+    #*)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";exec /bin/consul agent -config-dir=/config $(processArgs $@);;
+    *)                  echo "exec /bin/consul agent -config-dir=${CONFIG_DIR} $(processArgs $@)";exec /bin/consul agent -config-dir=/config $(processArgs $@);;
 	esac
 }
 
