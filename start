@@ -59,6 +59,7 @@ processArgs() {
 
     local output=""
     for ((argp=0; argp<argn; argp++)); do
+        #echo "arg[$argp]=${argv[argp]}"
 
         if   [[ ${argv[argp]} == "-server" ]]; then
             output=${output}"-server "
@@ -75,11 +76,21 @@ processArgs() {
 
         elif [[ ${argv[argp]} == "-bootstrap-expect" ]]; then
             local nodenum=${argv[argp+1]}
-            output=${output}"-bootstrap-expect $nodenum "
+            local numrex="[0-9]+"
+            if [[ "$nodenum" =~ $numrex ]]; then
+                output=${output}"-bootstrap-expect $nodenum "
+                ((argp++))
+            else
+                output=${output}"-bootstrap-expect "
+            fi
+
+        elif [[ ${argv[argp]} == "-ui-dir" ]]; then
+            local resource_path=${argv[argp+1]}
+            output=${output}"-ui-dir $resource_path "
             ((argp++))
 
         else
-            echo "Invalid Arguments: $argv"
+            echo "Invalid Arguments: ${argv[argp]}"
             exit
         fi
     done
@@ -92,7 +103,8 @@ main() {
 	case "$1" in
 	cmd:run)            shift; cmd-run $@;;
 	#*)                  exec /bin/consul agent -config-dir=/config $@;;
-    *)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";;
+    #*)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";;
+    *)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";exec /bin/consul agent -config-dir=/config $(processArgs $@);;
 	esac
 }
 
