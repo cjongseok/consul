@@ -34,4 +34,4 @@ VOLUME ["/data"]
 ENV SHELL /bin/bash
 
 ENTRYPOINT ["/bin/start"]
-CMD []
+#CMD []
