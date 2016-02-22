@@ -75,8 +75,8 @@ processArgs() {
 	    else
                 local end=${argv[argp+1]}
                 output=${output}"-advertise $(resolveFQDN $end) "
+                ((argp++))
             fi
-            ((argp++))
 
         elif [[ ${argv[argp]} == "-join" ]]; then
             local end=${argv[argp+1]}
