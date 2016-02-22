@@ -7,6 +7,8 @@ readonly CONFIG_JSON="$CONFIG_DIR/consul.json"
 #readonly SCRIPT_DIR=$(dirname $(readlink -e $0))
 #readonly DATACENTER=$(getdc.sh)
 
+unset DOCKER_HOST_DC
+
 cmd-run() {
 	local ip_def="$1"; shift
 	local args="$@"
@@ -56,27 +58,43 @@ resolveFQDN() {
     fi
 }
 
+usage() {
+    echo "aws [-server] -join [-bootstrap-expect]"
+}
+
 processArgs() {
     local argv=($@)
     local argp=0
     local argn=$#
-
+    local onAws=false
     local output=""
-    for ((argp=0; argp<argn; argp++)); do
+
+    echo "args=$@"
+
+    if [[ ${argv[argp]}="aws" ]]; then
+        local end=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+        #local end=$(curl -s http://instance-data/latest/meta-data/local-ipv4)
+        output=${output}"-advertise $end "
+        ((argp++))
+    fi
+
+    for ((; argp<argn; argp++)); do
         #echo "arg[$argp]=${argv[argp]}"
 
         if   [[ ${argv[argp]} == "-server" ]]; then
             output=${output}"-server "
 
         elif [[ ${argv[argp]} == "-advertise" ]]; then
-	    if ! [[ $CONSUL_ADVERTISE_END = "" ]]; then
-	        local end=$CONSUL_ADVERTISE_END
-                output=${output}"-advertise $end "
-	    else
+#	    if ! [[ $CONSUL_ADVERTISE_END = "" ]]; then
+#	        local end=$CONSUL_ADVERTISE_END
+#                output=${output}"-advertise $end "
+#		echo "advertise_end=$end"
+#	    else
                 local end=${argv[argp+1]}
                 output=${output}"-advertise $(resolveFQDN $end) "
                 ((argp++))
-            fi
+		echo "advertise_end=$end"
+#            fi
 
         elif [[ ${argv[argp]} == "-join" ]]; then
             local end=${argv[argp+1]}
@@ -104,13 +122,15 @@ processArgs() {
         fi
     done
 
-    echo $output
+    echo "output=$output"
 }
 
 configureConsul() {
     mv $CONFIG_JSON $CONFIG_DIR/.consul.json
 
     # Add datacenter name to Consul configuration
+    #DOCKER_HOST_DC=$(curl -s http://instance-data/latest/meta-data/placement/availability-zone) 
+    DOCKER_HOST_DC=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone) 
     jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_DIR/.consul.json > $CONFIG_JSON
 
     cat $CONFIG_JSON
