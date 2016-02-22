@@ -69,8 +69,13 @@ processArgs() {
             output=${output}"-server "
 
         elif [[ ${argv[argp]} == "-advertise" ]]; then
-            local end=${argv[argp+1]}
-            output=${output}"-advertise $(resolveFQDN $end) "
+	    if ! [[ $CONSUL_ADVERTISE_END = "" ]]; then
+	        local end=$CONSUL_ADVERTISE_END
+                output=${output}"-advertise $end "
+	    else
+                local end=${argv[argp+1]}
+                output=${output}"-advertise $(resolveFQDN $end) "
+            fi
             ((argp++))
 
         elif [[ ${argv[argp]} == "-join" ]]; then
