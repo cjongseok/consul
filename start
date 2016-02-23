@@ -82,13 +82,13 @@ processArgs() {
 
     #echo "args=$@"
 
-    if [[ ${argv[argp]}="aws-server" ]]; then
+    if [[ ${argv[argp]} = "aws-server" ]]; then
 	local end=$(getEc2Ipv4)
         output=${output}"-server -advertise $end "
 	((argp++))
-    elif [[ ${argv[argp]}="aws-agent" ]]; then
+    elif [[ ${argv[argp]} = "aws-agent" ]]; then
 	local end=$(getEc2Ipv4)
-        output=${output}"-agent -advertise $end "
+        output=${output}"-advertise $end "
 	((argp++))
     fi
 
