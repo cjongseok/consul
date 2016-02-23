@@ -58,6 +58,17 @@ resolveFQDN() {
     fi
 }
 
+getEc2Region() {
+    az=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone/)
+    ((to=${#az}-1))
+    echo `expr substr $az 1 $to`
+}
+
+getEc2Ipv4() {
+    echo $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+}
+
+
 usage() {
     echo "aws-server [-join | -bootstrap-expect]"
 }
@@ -72,7 +83,8 @@ processArgs() {
     #echo "args=$@"
 
     if [[ ${argv[argp]}="aws-server" ]]; then
-        local end=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+	local end=$(getEc2Ipv4)
+        #local end=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
         #local end=$(curl -s http://instance-data/latest/meta-data/local-ipv4)
         output=${output}"-server -advertise $end "
 	((argp++))
@@ -130,7 +142,8 @@ configureConsul() {
 
     # Add datacenter name to Consul configuration
     #DOCKER_HOST_DC=$(curl -s http://instance-data/latest/meta-data/placement/availability-zone) 
-    DOCKER_HOST_DC=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone) 
+    #DOCKER_HOST_DC=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone) 
+    DOCKER_HOST_DC=$(getEc2Region)
     jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_DIR/.consul.json > $CONFIG_JSON
 
     cat $CONFIG_JSON
