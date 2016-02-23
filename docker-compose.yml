@@ -1,0 +1,15 @@
+consul-server-bootstrapper:
+  restart: always
+  image: cjongseok/consul
+#  environment:
+#    - DOCKER_HOST_DC=ap-northeast-1a
+  ports:
+    - 8300:8300
+    - 8301:8301
+    - 8301:8301/udp
+    - 8302:8302
+    - 8302:8302/udp
+    - 8400:8400
+    - 8500:8500
+  command: aws-server -bootstrap-expect 1 -ui-dir /ui
+  #command: aws-server -join consul.ybrainlab.com -ui-dir /ui
