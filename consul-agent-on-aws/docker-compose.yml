@@ -1,6 +1,6 @@
 consul_agent:
         container_name: consul_agent
-        image: localconsul
+        image: cjongseok/consul
         restart: always
         expose: 
                 - "8300"
