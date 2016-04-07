@@ -1,48 +1,18 @@
 #!/bin/bash
 
+TRUE="true"
+FALSE="false"
+
 readonly IMAGE="progrium/consul"
 readonly EXPECT="${EXPECT:-3}"
 readonly CONFIG_DIR="/config"
+readonly CONFIG_TEMPLATE="$CONFIG_DIR/template.json"
 readonly CONFIG_JSON="$CONFIG_DIR/consul.json"
 #readonly SCRIPT_DIR=$(dirname $(readlink -e $0))
 #readonly DATACENTER=$(getdc.sh)
 
 unset DOCKER_HOST_DC
-
-cmd-run() {
-	local ip_def="$1"; shift
-	local args="$@"
-
-	declare external_ip join_ip bridge_ip run_mode client_flag server_flag
-
-	IFS=':' read external_ip join_ip client_flag <<< "${ip_def//::/:}"
-
-	if [[ -z "$join_ip" ]]; then
-		run_mode="-bootstrap-expect $EXPECT"
-	else
-		run_mode="-join $join_ip"
-	fi
-
-	if [[ -z "$client_flag" ]]; then
-		server_flag="-server"
-	fi
-
-	bridge_ip="$(ip ro | awk '/^default/{print $3}')"
-	cat <<EOF
-eval docker run --name consul -h \$HOSTNAME \
-	-p $external_ip:8300:8300 \
-	-p $external_ip:8301:8301 \
-	-p $external_ip:8301:8301/udp \
-	-p $external_ip:8302:8302 \
-	-p $external_ip:8302:8302/udp \
-	-p $external_ip:8400:8400 \
-	-p $external_ip:8500:8500 \
-	-p $bridge_ip:53:53 \
-	-p $bridge_ip:53:53/udp \
-	$args \
-	$IMAGE $server_flag -advertise $external_ip $run_mode
-EOF
-}
+on_aws=$FALSE
 
 
 # ARGUMENTS
@@ -82,34 +52,21 @@ processArgs() {
 
     #echo "args=$@"
 
-    if [[ ${argv[argp]} = "aws-server" ]]; then
-	local end=$(getEc2Ipv4)
-        output=${output}"-server -advertise $end "
-	((argp++))
-    elif [[ ${argv[argp]} = "aws-agent" ]]; then
-	local end=$(getEc2Ipv4)
-        output=${output}"-advertise $end "
-	((argp++))
-    fi
-
     for ((; argp<argn; argp++)); do
-        #echo "arg[$argp]=${argv[argp]}"
-
-        if   [[ ${argv[argp]} == "-server" ]]; then
+        if [[ ${argv[argp]} == "aws-server" ]]; then
+	        on_aws=$TRUE
+            local end=$(getEc2Ipv4)
+            output=${output}"-server -advertise $end "
+        elif [[ ${argv[argp]} == "aws-agent" ]]; then
+	        on_aws=$TRUE
+            local end=$(getEc2Ipv4)
+            output=${output}"-advertise $end "
+        elif   [[ ${argv[argp]} == "-server" ]]; then
             output=${output}"-server "
-
         elif [[ ${argv[argp]} == "-advertise" ]]; then
-#	    if ! [[ $CONSUL_ADVERTISE_END = "" ]]; then
-#	        local end=$CONSUL_ADVERTISE_END
-#                output=${output}"-advertise $end "
-#		echo "advertise_end=$end"
-#	    else
-                local end=${argv[argp+1]}
-                output=${output}"-advertise $(resolveFQDN $end) "
-                ((argp++))
-		echo "advertise_end=$end"
-#            fi
-
+            local end=${argv[argp+1]}
+            output=${output}"-advertise $(resolveFQDN $end) "
+            ((argp++))
         elif [[ ${argv[argp]} == "-join" ]]; then
             local end=${argv[argp+1]}
             output=${output}"-join $(resolveFQDN $end) "
@@ -131,8 +88,8 @@ processArgs() {
             ((argp++))
         elif [[ ${argv[argp]} == "-config-file" ]]; then
             local conf_file=${argv[argp+1]}
-	    output=${output}"-config-file $conf_file "
-	    ((argp++))
+            output=${output}"-config-file $conf_file "
+            ((argp++))
         else
             echo "Invalid Arguments: ${argv[argp]}"
             exit
@@ -143,27 +100,28 @@ processArgs() {
 }
 
 configureConsul() {
-    mv $CONFIG_JSON $CONFIG_DIR/.consul.json
+#    mv $CONFIG_JSON $CONFIG_DIR/.consul.json
 
     # Add datacenter name to Consul configuration
-    #DOCKER_HOST_DC=$(curl -s http://instance-data/latest/meta-data/placement/availability-zone) 
-    #DOCKER_HOST_DC=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone) 
     DOCKER_HOST_DC=$(getEc2Region)
-    jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_DIR/.consul.json > $CONFIG_JSON
+    jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_TEMPLATE > $CONFIG_JSON
 
     cat $CONFIG_JSON
 }
 
 main() {
-    configureConsul
+    if [[ $on_aws == $TRUE ]]; then
+        configureConsul
+    fi
 
 	set -eo pipefail
 	case "$1" in
-	cmd:run)            shift; cmd-run $@;;
-	#*)                  exec /bin/consul agent -config-dir=/config $@;;
-    #*)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";;
-    #*)                  echo "exec /bin/consul agent -config-dir=/config $(processArgs $@)";exec /bin/consul agent -config-dir=/config $(processArgs $@);;
-    *)                  echo "exec /bin/consul agent -config-dir=${CONFIG_DIR} $(processArgs $@)";exec /bin/consul agent -config-dir=/config $(processArgs $@);;
+	cmd:run) shift; cmd-run $@;;
+    *) 
+        cmd=$(processArgs $@)
+        echo "cmd=$cmd"
+        echo "exec /bin/consul agent -config-dir=${CONFIG_DIR} $cmd"
+        exec /bin/consul agent -config-dir=${CONFIG_DIR} $cmd;;
 	esac
 }
 

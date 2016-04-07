@@ -25,7 +25,7 @@ RUN chmod +x /bin/docker
 #    sed -i -r '/^#.+/d' /etc/ssl/certs/ca-certificates.crt
 
 ADD ./config /config/
-ONBUILD ADD ./config /config/
+#ONBUILD ADD ./config /config/
 
 ADD ./start /bin/start
 ADD ./check-http /bin/check-http

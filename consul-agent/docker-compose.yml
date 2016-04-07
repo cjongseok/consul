@@ -1,0 +1,38 @@
+consul_agent:
+        container_name: consul
+        image: cjongseok/consul
+        restart: always
+        expose: 
+                - "8300"
+                - "8301"
+                - "8301/udp"
+                - "8302"
+                - "8302/udp"
+                - "8400"
+                - "8500"
+                - "53/udp"
+        ports:
+            - "8300:8300"
+            - "8301:8301"
+            - "8301:8301/udp"
+            - "8302:8302"
+            - "8302:8302/udp"
+            - "8400:8400"
+            - "8500:8500"
+            - "53:53/udp"
+        volumes:
+            - consul.json:/etc/consul/consul.json
+        links:
+            - consul_server:consul_server
+        #command: agent -join consul_server -config-file /etc/consul/consul.json
+        command: aws-agent -join consul.infra.com -config-file /etc/consul/consul.json
+
+registrator:
+    container_name: consul-registrator
+    image: gliderlabs/registrator
+    restart: always
+    volumes:
+        - "/var/run/docker.sock:/tmp/docker.sock"
+    links:
+        - consul_agent:consul
+    command: consul://consul:8500
