@@ -1,0 +1,27 @@
+consul_server:
+    restart: always
+    image: cjongseok/consul
+    ports:
+        - 8300:8300
+        - 8301:8301
+        - 8301:8301/udp
+        - 8302:8302
+        - 8302:8302/udp
+        - 8400:8400
+        - 8500:8500
+        - 53:53/udp
+    environment:
+        - DOCKER_HOST_DC=default
+        - SERVICE_NAME=consul  
+    command: aws-server -bootstrap-expect 1 -ui-dir /ui
+    
+registrator:
+    container_name: consul-registrator
+    image: gliderlabs/registrator
+    restart: always
+    volumes:
+        - "/var/run/docker.sock:/tmp/docker.sock"
+    links:
+        #        - consul:consul
+        - consul_server:consul
+    command: consul://consul:8500

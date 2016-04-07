@@ -1,6 +1,6 @@
 consul_agent:
-        container_name: consul
-        image: cjongseok/consul
+        container_name: consul_agent
+        image: localconsul
         restart: always
         expose: 
                 - "8300"
@@ -20,12 +20,10 @@ consul_agent:
             - "8400:8400"
             - "8500:8500"
             - "53:53/udp"
-        volumes:
-            - consul.json:/etc/consul/consul.json
-        links:
-            - consul_server:consul_server
+        #volumes:
+        #    - consul.json:/etc/consul/consul.json
         #command: agent -join consul_server -config-file /etc/consul/consul.json
-        command: aws-agent -join consul.infra.com -config-file /etc/consul/consul.json
+        command: aws-agent -join consul.infra.com 
 
 registrator:
     container_name: consul-registrator

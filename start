@@ -12,6 +12,7 @@ readonly CONFIG_JSON="$CONFIG_DIR/consul.json"
 #readonly DATACENTER=$(getdc.sh)
 
 unset DOCKER_HOST_DC
+unset output
 on_aws=$FALSE
 
 
@@ -48,17 +49,16 @@ processArgs() {
     local argp=0
     local argn=$#
     local onAws=false
-    local output=""
 
     #echo "args=$@"
 
     for ((; argp<argn; argp++)); do
         if [[ ${argv[argp]} == "aws-server" ]]; then
-	        on_aws=$TRUE
+	    on_aws=$TRUE
             local end=$(getEc2Ipv4)
             output=${output}"-server -advertise $end "
         elif [[ ${argv[argp]} == "aws-agent" ]]; then
-	        on_aws=$TRUE
+	    on_aws=$TRUE
             local end=$(getEc2Ipv4)
             output=${output}"-advertise $end "
         elif   [[ ${argv[argp]} == "-server" ]]; then
@@ -95,33 +95,32 @@ processArgs() {
             exit
         fi
     done
-
-    echo "$output"
 }
 
 configureConsul() {
 #    mv $CONFIG_JSON $CONFIG_DIR/.consul.json
 
     # Add datacenter name to Consul configuration
-    DOCKER_HOST_DC=$(getEc2Region)
-    jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_TEMPLATE > $CONFIG_JSON
+    if [ -z $DOCKER_HOST_DC ]; then
+	if [[ $on_aws == $TRUE ]]; then
+            DOCKER_HOST_DC=$(getEc2Region)
+	fi
+        jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_TEMPLATE > $CONFIG_JSON
+    fi
 
     cat $CONFIG_JSON
 }
 
 main() {
-    if [[ $on_aws == $TRUE ]]; then
-        configureConsul
-    fi
-
 	set -eo pipefail
 	case "$1" in
 	cmd:run) shift; cmd-run $@;;
     *) 
-        cmd=$(processArgs $@)
-        echo "cmd=$cmd"
-        echo "exec /bin/consul agent -config-dir=${CONFIG_DIR} $cmd"
-        exec /bin/consul agent -config-dir=${CONFIG_DIR} $cmd;;
+        processArgs $@
+	configureConsul
+        echo "cmd=$output"
+        echo "exec /bin/consul agent -config-file=${CONFIG_JSON} $output"
+        exec /bin/consul agent -config-file=${CONFIG_JSON} $output;;
 	esac
 }
 
