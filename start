@@ -1,13 +1,17 @@
 #!/bin/bash
 
-TRUE="true"
-FALSE="false"
+# Auto-configured variables by the launcher
+readonly DOCKER_HOST_DNS_SERVER=$AUTO_CONFIGURED_ENV_DOCKER_HOST_DNS_SERVER
 
+# Consts and global variables
+readonly TRUE="true"
+readonly FALSE="false"
 readonly IMAGE="progrium/consul"
 readonly EXPECT="${EXPECT:-3}"
 readonly CONFIG_DIR="/config"
 readonly CONFIG_TEMPLATE="$CONFIG_DIR/template.json"
 readonly CONFIG_JSON="$CONFIG_DIR/consul.json"
+#readonly HOST_1ST_DNS=$(cat /etc/resolv.conf  | grep nameserver | head -n 1 | awk '{ print $2}')
 #readonly SCRIPT_DIR=$(dirname $(readlink -e $0))
 #readonly DATACENTER=$(getdc.sh)
 
@@ -99,14 +103,23 @@ processArgs() {
 
 configureConsul() {
 #    mv $CONFIG_JSON $CONFIG_DIR/.consul.json
+    local jsonStr='{}'
 
     # Add datacenter name to Consul configuration
-    if [ -z $DOCKER_HOST_DC ]; then
-	if [[ $on_aws == $TRUE ]]; then
+    if [ -z $DOCKER_HOST_DC ] && [[ $on_aws == $TRUE ]]; then
             DOCKER_HOST_DC=$(getEc2Region)
-	fi
-        jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_TEMPLATE > $CONFIG_JSON
     fi
+
+    if [ ! -z $DOCKER_HOST_DC ]; then
+        #jq -c '. + {"datacenter":"'$DOCKER_HOST_DC'"}' $CONFIG_TEMPLATE > $CONFIG_JSON
+        jsonStr=$(jq  '. + {"datacenter":"'$DOCKER_HOST_DC'"}' <<< "$jsonStr")
+    fi
+
+    if [ ! -z $DOCKER_HOST_DNS_SERVER ]; then
+        #jq -c '. + {"recursor":"'$DOCKER_HOST_DNS_SERVER'"}' $CONFIG_TEMPLATE > $CONFIG_JSON
+        jsonStr=$(jq '. + {"recursor":"'$DOCKER_HOST_DNS_SERVER'"}' <<< "$jsonStr")
+    fi
+    jq -c '. + '"$jsonStr"'' $CONFIG_TEMPLATE > $CONFIG_JSON
 
     cat $CONFIG_JSON
 }

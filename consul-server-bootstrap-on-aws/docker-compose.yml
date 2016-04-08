@@ -13,6 +13,9 @@ consul_server:
     environment:
         - DOCKER_HOST_DC=default
         - SERVICE_NAME=consul  
+        # Below env variables are automatically allocated by consul_env.sh 
+        - AUTO_CONFIGURED_ENV_DOCKER_HOST_DNS_SERVER=
+        ##################################################################
     command: aws-server -bootstrap-expect 1 -ui-dir /ui
     
 registrator:
