@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Auto-configured variables by the launcher
-readonly DOCKER_HOST_DNS_SERVER=$AUTO_CONFIGURED_ENV_DOCKER_HOST_DNS_SERVER
-
 # Consts and global variables
 readonly TRUE="true"
 readonly FALSE="false"

@@ -1,7 +1,6 @@
 consul_agent:
     container_name: consul_agent
-    #image: cjongseok/consul
-    image: localconsul
+    image: cjongseok/consul
     restart: always
     expose: 
             - "8300"
@@ -23,7 +22,7 @@ consul_agent:
         - "53:53/udp"
     environment:    
         # Below env variables are automatically allocated by consul_env.sh 
-        - AUTO_CONFIGURED_ENV_DOCKER_HOST_DNS_SERVER=
+        - DOCKER_HOST_DNS_SERVER=
         ##################################################################
     command: aws-agent -join consul.infra.com 
 
