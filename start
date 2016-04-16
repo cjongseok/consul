@@ -83,17 +83,20 @@ processArgs() {
                 output=${output}"-bootstrap-expect "
             fi
 
-        elif [[ ${argv[argp]} == "-ui-dir" ]]; then
-            local resource_path=${argv[argp+1]}
-            output=${output}"-ui-dir $resource_path "
-            ((argp++))
-        elif [[ ${argv[argp]} == "-config-file" ]]; then
-            local conf_file=${argv[argp+1]}
-            output=${output}"-config-file $conf_file "
-            ((argp++))
+#        elif [[ ${argv[argp]} == "-ui-dir" ]]; then
+#            local resource_path=${argv[argp+1]}
+#            output=${output}"-ui-dir $resource_path "
+#            ((argp++))
+#        elif [[ ${argv[argp]} == "-config-file" ]]; then
+#            local conf_file=${argv[argp+1]}
+#            output=${output}"-config-file $conf_file "
+#            ((argp++))
+#        else
+#            echo "Invalid Arguments: ${argv[argp]}"
+#            exit
+#        fi
         else
-            echo "Invalid Arguments: ${argv[argp]}"
-            exit
+            output=${output}"${argv[argp]} "
         fi
     done
 }

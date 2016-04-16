@@ -24,7 +24,8 @@ consul_agent:
         # Below env variables are automatically allocated by consul_env.sh 
         - DOCKER_HOST_DNS_SERVER=
         ##################################################################
-    command: aws-agent -join consul.infra.com 
+        # <NODE_NAME> is automatically resolved by consul_env.sh
+    command: aws-agent -join consul.infra.com -node <NODE_NAME>
 
 registrator:
     container_name: consul-registrator
