@@ -34,4 +34,5 @@ registrator:
         - "/var/run/docker.sock:/tmp/docker.sock"
     links:
         - consul_agent:consul
-    command: consul://consul:8500
+    # <ADVERTISE_END> is automatically resolved by consul_env.sh
+    command: -ip <ADVERTISE_IP> consul://consul:8500

@@ -27,4 +27,5 @@ registrator:
     links:
         #        - consul:consul
         - consul_server:consul
-    command: consul://consul:8500
+    # <ADVERTISE_IP> is automatically resolved by consul_env.sh
+    command: -ip <ADVERTISE_IP> consul://consul:8500
